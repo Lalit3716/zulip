@@ -186,7 +186,7 @@ export function id_matches_email_operand(user_id: number, email: string): boolea
 }
 
 export function update_email(user_id: number, new_email: string): void {
-    const person = people_by_user_id_dict.get(user_id);
+    const person = people_by_user_id_dict.get(user_id)!;
     person.email = new_email;
     people_dict.set(new_email, person);
 
@@ -373,7 +373,7 @@ export function get_user_time(user_id: number): string | undefined {
 }
 
 export function get_user_type(user_id: number): string | undefined {
-    const user_profile = get_by_user_id(user_id);
+    const user_profile = get_by_user_id(user_id)!;
 
     return settings_config.user_role_map.get(user_profile.role);
 }
@@ -424,7 +424,7 @@ export function get_display_full_names(user_ids: number[]): string[] {
 }
 
 export function get_full_name(user_id: number): string {
-    return people_by_user_id_dict.get(user_id).full_name;
+    return people_by_user_id_dict.get(user_id)!.full_name;
 }
 
 function _calc_user_and_other_ids(user_ids_string: string): {
@@ -680,7 +680,7 @@ export function emails_to_slug(emails_string: string): string | undefined {
     const emails = emails_string.split(",");
 
     if (emails.length === 1) {
-        const name = get_by_email(emails[0]).full_name;
+        const name = get_by_email(emails[0])!.full_name;
         slug += name.replaceAll(/[ "%/<>`\p{C}]+/gu, "-");
     } else {
         slug += "group";
@@ -738,7 +738,7 @@ export function format_small_avatar_url(raw_url: string): string {
 export function sender_is_bot(message: Message): boolean {
     if (message.sender_id) {
         const person = get_by_user_id(message.sender_id);
-        return person.is_bot;
+        return person!.is_bot;
     }
     return false;
 }
@@ -746,13 +746,13 @@ export function sender_is_bot(message: Message): boolean {
 export function sender_is_guest(message: Message): boolean {
     if (message.sender_id) {
         const person = get_by_user_id(message.sender_id);
-        return person.is_guest;
+        return person!.is_guest;
     }
     return false;
 }
 
 export function user_is_bot(user_id: number): boolean {
-    const user = get_by_user_id(user_id);
+    const user = get_by_user_id(user_id)!;
     return user.is_bot;
 }
 
@@ -1100,7 +1100,7 @@ export function get_message_people(): User[] {
             .filter(Boolean),
     );
 
-    return message_people;
+    return message_people ?? [];
 }
 
 export function get_active_message_people(): User[] {
@@ -1520,7 +1520,7 @@ export function set_custom_profile_field_data(
         blueslip.error("Trying to set undefined field id");
         return;
     }
-    people_by_user_id_dict.get(user_id).profile_data[field.id] = {
+    people_by_user_id_dict.get(user_id)!.profile_data[field.id] = {
         value: field.value,
         rendered_value: field.rendered_value,
     };
@@ -1539,11 +1539,11 @@ export function initialize_current_user(user_id: number): void {
 }
 
 export function my_full_name(): string {
-    return people_by_user_id_dict.get(my_user_id).full_name;
+    return people_by_user_id_dict.get(my_user_id)!.full_name;
 }
 
 export function my_current_email(): string {
-    return people_by_user_id_dict.get(my_user_id).email;
+    return people_by_user_id_dict.get(my_user_id)!.email;
 }
 
 export function my_current_user_id(): number {
@@ -1559,7 +1559,7 @@ export function my_custom_profile_data(field_id: number): ProfileData | null | u
 }
 
 export function get_custom_profile_data(user_id: number, field_id: number): ProfileData | null {
-    const profile_data = people_by_user_id_dict.get(user_id).profile_data;
+    const profile_data = people_by_user_id_dict.get(user_id)!.profile_data;
     if (profile_data === undefined) {
         return null;
     }
@@ -1584,7 +1584,7 @@ export function compare_by_name(a: User, b: User): number {
 }
 
 export function sort_but_pin_current_user_on_top(users: User[]): void {
-    const my_user = people_by_user_id_dict.get(my_user_id);
+    const my_user = people_by_user_id_dict.get(my_user_id)!;
     if (users.includes(my_user)) {
         users.splice(users.indexOf(my_user), 1);
         users.sort(compare_by_name);
