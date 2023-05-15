@@ -15,6 +15,7 @@ export type DisplayRecipientUser = {
     full_name: string;
     id: number;
     is_mirror_dummy: boolean;
+    unknown_local_echo_user?: boolean;
 };
 
 export type DisplayRecipient = string | DisplayRecipientUser[];
@@ -71,9 +72,43 @@ export type RawMessage = {
 } & MatchedMessage;
 
 // TODO/typescript: Move this to message_store
-export type Message = RawMessage & {
-    to_user_ids?: string;
+export type MessageCleanReaction = {
+    class: string;
+    count: number;
+    emoji_alt_code: boolean;
+    emoji_code: string;
+    emoji_name: string;
+    is_realm_emoji: boolean;
+    label: string;
+    local_id: string;
+    reaction_type: string;
+    user_ids: number[];
+    vote_text: string;
+};
+
+// TODO/typescript: Move this to message_store
+export type Message = Omit<RawMessage, "reactions"> & {
+    alerted: boolean;
+    clean_reactions: Map<string, MessageCleanReaction>;
+    collapsed: boolean;
+    display_reply_to?: string;
+    historical: boolean;
+    is_private?: boolean;
+    is_stream?: boolean;
+    mentioned: boolean;
+    mentioned_me_directly: boolean;
+    message_reactions: MessageCleanReaction[];
+    pm_with_url?: string;
+    reply_to: string;
+    sent_by_me: boolean;
+    starred: boolean;
+    starred_status: string;
+    stream?: string;
+    unread: boolean;
+    url: string;
     topic: string;
+    to_user_ids?: string;
+    wildcard_mentioned: boolean;
 };
 
 // TODO/typescript: Move this to server_events_dispatch
