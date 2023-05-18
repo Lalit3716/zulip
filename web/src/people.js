@@ -1328,8 +1328,6 @@ export function extract_people_from_message(message) {
             email: person.email,
             user_id,
             full_name: person.full_name,
-            is_admin: person.is_realm_admin || false,
-            is_bot: person.is_bot || false,
         });
     }
 }
