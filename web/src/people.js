@@ -1282,6 +1282,30 @@ export function report_late_add(user_id, email) {
     }
 }
 
+function make_user(partial_user) {
+    return {
+        user_id: partial_user.user_id ?? -1,
+        email: partial_user.email ?? "",
+        full_name: partial_user.full_name ?? "",
+        is_active: partial_user.is_active ?? false,
+        is_admin: partial_user.is_admin ?? false,
+        is_guest: partial_user.is_guest ?? false,
+        timezone: partial_user.timezone ?? "",
+        is_bot: partial_user.is_bot ?? false,
+        avatar_version: partial_user.avatar_version ?? 0,
+        date_joined: partial_user.date_joined ?? "",
+        delivery_email: partial_user.delivery_email ?? "",
+        profile_data: partial_user.profile_data ?? {},
+        is_billing_admin: partial_user.is_billing_admin ?? false,
+        role: partial_user.role ?? 0,
+        is_owner: partial_user.is_owner ?? false,
+        avatar_url: partial_user.avatar_url ?? "",
+        bot_owner_id: partial_user.bot_owner_id ?? undefined,
+        bot_type: partial_user.bot_type ?? 0,
+        is_moderator: partial_user.is_moderator ?? false,
+    };
+}
+
 function get_involved_people(message) {
     let involved_people;
 
@@ -1324,11 +1348,13 @@ export function extract_people_from_message(message) {
 
         report_late_add(user_id, person.email);
 
-        _add_user({
-            email: person.email,
-            user_id,
-            full_name: person.full_name,
-        });
+        _add_user(
+            make_user({
+                email: person.email,
+                user_id,
+                full_name: person.full_name,
+            }),
+        );
     }
 }
 
