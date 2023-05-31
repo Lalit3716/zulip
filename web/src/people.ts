@@ -16,6 +16,8 @@ import * as settings_data from "./settings_data";
 import type {DisplayRecipientUser, Message} from "./types";
 import * as util from "./util";
 
+import z from "zod";
+
 export type ProfileData = {
     value: string;
     rendered_value: string;
@@ -239,6 +241,7 @@ function sort_numerically(user_ids: number[]): number[] {
 }
 
 export function huddle_string(message: Message): string | undefined {
+    verify_message(message);
     if (message.type !== "private") {
         return undefined;
     }
@@ -451,6 +454,7 @@ export function get_recipients(user_ids_string: string): string {
 }
 
 export function pm_reply_user_string(message: Message): string | undefined {
+    verify_message(message);
     const user_ids = pm_with_user_ids(message);
 
     if (!user_ids) {
@@ -461,6 +465,7 @@ export function pm_reply_user_string(message: Message): string | undefined {
 }
 
 export function pm_reply_to(message: Message): string | undefined {
+    verify_message(message);
     const user_ids = pm_with_user_ids(message);
 
     if (!user_ids) {
@@ -528,6 +533,7 @@ export function pm_lookup_key(user_ids_string: string): string {
 }
 
 export function all_user_ids_in_pm(message: Message): number[] | undefined {
+    verify_message(message);
     if (message.type !== "private") {
         return undefined;
     }
@@ -549,6 +555,7 @@ export function all_user_ids_in_pm(message: Message): number[] | undefined {
 }
 
 export function pm_with_user_ids(message: Message): number[] | undefined {
+    verify_message(message);
     if (message.type !== "private") {
         return undefined;
     }
@@ -569,6 +576,7 @@ export function pm_with_user_ids(message: Message): number[] | undefined {
 }
 
 export function pm_perma_link(message: Message): string | undefined {
+    verify_message(message);
     const user_ids = all_user_ids_in_pm(message);
 
     if (!user_ids) {
@@ -589,6 +597,7 @@ export function pm_perma_link(message: Message): string | undefined {
 }
 
 export function pm_with_url(message: Message): string | undefined {
+    verify_message(message);
     const user_ids = pm_with_user_ids(message);
 
     if (!user_ids) {
@@ -736,6 +745,7 @@ export function format_small_avatar_url(raw_url: string): string {
 }
 
 export function sender_is_bot(message: Message): boolean {
+    verify_message(message);
     if (message.sender_id) {
         const person = get_by_user_id(message.sender_id);
         return person!.is_bot;
@@ -744,6 +754,7 @@ export function sender_is_bot(message: Message): boolean {
 }
 
 export function sender_is_guest(message: Message): boolean {
+    verify_message(message);
     if (message.sender_id) {
         const person = get_by_user_id(message.sender_id);
         return person!.is_guest;
@@ -1395,6 +1406,7 @@ function make_user(partial_user: Partial<User>): User {
 }
 
 function get_involved_people(message: Message): DisplayRecipientUser[] {
+    verify_message(message);
     let involved_people: DisplayRecipientUser[];
 
     switch (message.type) {
@@ -1425,6 +1437,7 @@ function get_involved_people(message: Message): DisplayRecipientUser[] {
 }
 
 export function extract_people_from_message(message: Message): void {
+    verify_message(message);
     const involved_people = get_involved_people(message);
 
     // Add new people involved in this message to the people list
@@ -1476,7 +1489,113 @@ export function filter_for_user_settings_search(persons: User[], query: string):
     return persons.filter((person) => matches_user_settings_search(person, query));
 }
 
+let unique_parse_errors = new Set<string>();
+
+function verify_message(message: Message): void {
+    // Make a copy of the message at the time this helper is called
+    // to avoid further mutation by other called functions
+    const msg = structuredClone(message);
+
+    const message_clean_reaction_schema = z.object({
+        class: z.string(),
+        count: z.number(),
+        emoji_alt_code: z.boolean().optional(), // Edited to be optional
+        emoji_code: z.string(),
+        emoji_name: z.string(),
+        is_realm_emoji: z.boolean(),
+        label: z.string(),
+        local_id: z.string(),
+        reaction_type: z.string(),
+        user_ids: z.array(z.number()),
+        vote_text: z.string(),
+    });
+
+    const display_recipient_schema = z.object({
+        email: z.string(),
+        full_name: z.string(),
+        id: z.number(),
+        is_mirror_dummy: z.boolean(),
+        unknown_local_echo_user: z.boolean().optional(),
+    });
+
+    const message_edit_history_entry_schema = z.object({
+        user_id: z.number().nullable(),
+        timestamp: z.number(),
+        prev_content: z.string().optional(),
+        prev_rendered_content: z.string().optional(),
+        prev_rendered_content_version: z.number().optional(),
+        prev_stream: z.number().optional(),
+        prev_topic: z.string().optional(),
+        stream: z.number().optional(),
+        topic: z.string().optional(),
+    });
+
+    const topic_link_schema = z.object({
+        text: z.string(),
+        url: z.string(),
+    });
+
+    const message_schema = z.object({
+        alerted: z.boolean(),
+        clean_reactions: z.map(z.string(), message_clean_reaction_schema).optional(), // Edited to be optional
+        collapsed: z.boolean(),
+        display_reply_to: z.string().optional(),
+        historical: z.boolean(),
+        is_private: z.boolean().optional(),
+        is_stream: z.boolean().optional(),
+        mentioned: z.boolean(),
+        mentioned_me_directly: z.boolean(),
+        message_reactions: message_clean_reaction_schema.array().optional(), // Edited to be optional
+        pm_with_url: z.string().optional(),
+        reply_to: z.string(),
+        sent_by_me: z.boolean(),
+        starred: z.boolean(),
+        starred_status: z.string().optional(), // Edited to be optional
+        stream: z.string().optional(),
+        unread: z.boolean(),
+        url: z.string(),
+        topic: z.string(),
+        to_user_ids: z.string().optional(), // Edited to be optional
+        wildcard_mentioned: z.boolean(),
+
+        avatar_url: z.string().nullable(), // Edited to be nullable
+        client: z.string(),
+        content: z.string(),
+        content_type: z.literal("text/html"),
+        display_recipient: z.union([display_recipient_schema.array(), z.string()]),
+        edit_history: message_edit_history_entry_schema.array().optional(),
+        id: z.number(),
+        is_me_message: z.boolean(),
+        last_edit_timestamp: z.number().optional(),
+        recipient_id: z.number(),
+        sender_email: z.string(),
+        sender_full_name: z.string(),
+        sender_id: z.number(),
+        sender_realm_str: z.string(),
+        stream_id: z.number().optional(),
+        subject: z.string(),
+        submessages: z.string().array(),
+        timestamp: z.number(),
+        topic_links: topic_link_schema.array(),
+        type: z.enum(["private", "stream"]),
+        flags: z.string().array().optional(), // Edited to be optional
+
+        match_content: z.string().optional(),
+        match_subject: z.string().optional(),
+    });
+    const result = message_schema.safeParse(msg);
+    if (!result.success) {
+        const error_message = JSON.stringify(result.error.errors);
+        if (!unique_parse_errors.has(error_message)) {
+            // Only log the first occurrence of the unique error message
+            blueslip.warn(`Invalid message`, {error: error_message, msg, unique_parse_errors});
+            unique_parse_errors.add(error_message);
+        }
+    }
+}
+
 export function maybe_incr_recipient_count(message: Message): void {
+    verify_message(message);
     if (message.type !== "private") {
         return;
     }
